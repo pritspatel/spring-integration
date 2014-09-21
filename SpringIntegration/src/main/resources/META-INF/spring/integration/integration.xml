@@ -9,16 +9,16 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd">
 
-	<context:component-scan base-package="com.prits.intn.orderprocessing"/>
+	<context:component-scan base-package="com.prits.integration"/>
 	
 	
 	<!--##############################################-->
     <!-- Gateway specification. -->
     <!--##############################################-->
-    <int:gateway service-interface="com.prits.intn.orderprocessing.OrderGateway" id="orderGateway" default-request-channel="order-request-channel"
+    <int:gateway service-interface="com.prits.integration.OrderGateway" id="orderGateway" default-request-channel="order-request-channel"
     	default-reply-timeout="5000"/>
     <int:channel id="order-request-channel"
-                 datatype="com.prits.intn.orderprocessing.Order"/>
+                 datatype="com.prits.integration.Order"/>
                  
 	<!--##############################################-->
     <!-- Request message splitter. -->
@@ -33,7 +33,7 @@
     <!-- Request message routing. -->
     <!--##############################################-->
     <int:channel id="order-router-channel"
-                 datatype="com.prits.intn.orderprocessing.LineItem"/>
+                 datatype="com.prits.integration.LineItem"/>
     <int:recipient-list-router input-channel="order-router-channel">
         <int:recipient channel="apple-order-channel"
                        selector-expression="payload.provider.equals(1000)"/>
@@ -47,7 +47,7 @@
 	<!--##############################################-->
     <!-- Request message routing to Apple. -->
     <!--##############################################-->
-    <int:channel id="apple-order-channel" datatype="com.prits.intn.orderprocessing.LineItem"/>
+    <int:channel id="apple-order-channel" datatype="com.prits.integration.LineItem"/>
     <int:chain input-channel="apple-order-channel"
                output-channel="aggregator-channel">
         <int:service-activator ref="appleService" method="processAppleOrder"/>
@@ -57,7 +57,7 @@
     <!--##############################################-->
     <!-- Request message routing to Samsung. -->
     <!--##############################################-->
-    <int:channel id="samsung-order-channel" datatype="com.prits.intn.orderprocessing.LineItem"/>
+    <int:channel id="samsung-order-channel" datatype="com.prits.integration.LineItem"/>
     <int:chain input-channel="samsung-order-channel"
                output-channel="aggregator-channel">
         <int:service-activator ref="samsungService" method="processSamsungOrder"/>
@@ -67,7 +67,7 @@
     <!--##############################################-->
     <!-- Response message handling, return the order gateway -->
     <!--##############################################-->
-    <int:channel id="aggregator-channel" datatype="com.prits.intn.orderprocessing.LineItem"/>
+    <int:channel id="aggregator-channel" datatype="com.prits.integration.LineItem"/>
     <int:chain input-channel="aggregator-channel">
         <int:aggregator/>
         <int:transformer ref="orderAggregator"/>
