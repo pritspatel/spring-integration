@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-http="http://www.springframework.org/schema/integration/http"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/integration/http http://www.springframework.org/schema/integration/http/spring-integration-http.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+	<context:component-scan base-package="com.prits.intn.orderprocessing"/>
+	
+	
+	<!--##############################################-->
+    <!-- Gateway specification. -->
+    <!--##############################################-->
+    <int:gateway service-interface="com.prits.intn.orderprocessing.OrderGateway" id="orderGateway" default-request-channel="order-request-channel"
+    	default-reply-timeout="5000"/>
+    <int:channel id="order-request-channel"
+                 datatype="com.prits.intn.orderprocessing.Order"/>
+                 
+	<!--##############################################-->
+    <!-- Request message splitter. -->
+    <!--##############################################-->
+    <int:splitter input-channel="order-request-channel"
+                  output-channel="order-router-channel"
+                  
+                  ref="orderRequestSplitter"/>         
+                  
+                  
+	<!--##############################################-->
+    <!-- Request message routing. -->
+    <!--##############################################-->
+    <int:channel id="order-router-channel"
+                 datatype="com.prits.intn.orderprocessing.LineItem"/>
+    <int:recipient-list-router input-channel="order-router-channel">
+        <int:recipient channel="apple-order-channel"
+                       selector-expression="payload.provider.equals(1000)"/>
+        <int:recipient channel="samsung-order-channel"
+                       selector-expression="payload.provider.equals(2000)"/>
+    </int:recipient-list-router>
+    
+                              
+
+
+	<!--##############################################-->
+    <!-- Request message routing to Apple. -->
+    <!--##############################################-->
+    <int:channel id="apple-order-channel" datatype="com.prits.intn.orderprocessing.LineItem"/>
+    <int:chain input-channel="apple-order-channel"
+               output-channel="aggregator-channel">
+        <int:service-activator ref="appleService" method="processAppleOrder"/>
+    </int:chain>
+    
+    
+    <!--##############################################-->
+    <!-- Request message routing to Samsung. -->
+    <!--##############################################-->
+    <int:channel id="samsung-order-channel" datatype="com.prits.intn.orderprocessing.LineItem"/>
+    <int:chain input-channel="samsung-order-channel"
+               output-channel="aggregator-channel">
+        <int:service-activator ref="samsungService" method="processSamsungOrder"/>
+    </int:chain>
+    
+    
+    <!--##############################################-->
+    <!-- Response message handling, return the order gateway -->
+    <!--##############################################-->
+    <int:channel id="aggregator-channel" datatype="com.prits.intn.orderprocessing.LineItem"/>
+    <int:chain input-channel="aggregator-channel">
+        <int:aggregator/>
+        <int:transformer ref="orderAggregator"/>
+    </int:chain>
+</beans>
